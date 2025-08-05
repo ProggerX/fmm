@@ -1,0 +1,22 @@
+cabal-version:      3.0
+name:               fmm
+version:            0.0.1
+synopsis:           KISS Factorio Mod Manager and launcher
+homepage:           https://github.com/ProggerX/fmm
+license:            GPL-3.0-only
+license-file:       LICENSE
+author:             ProggerX
+maintainer:         x@proggers.ru
+category:           Game
+build-type:         Simple
+
+common warnings
+    ghc-options: -Wall
+
+executable fmm
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:    Fmm, Fmm.Config, Fmm.Downloader, Fmm.Types
+    build-depends:    base >= 4.19.2.0, process, aeson, cmdargs, wreq, lens, directory
+    hs-source-dirs:   app
+    default-language: GHC2021
