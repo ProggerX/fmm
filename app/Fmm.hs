@@ -3,6 +3,7 @@
 module Fmm where
 
 import Fmm.UI.Launcher (buildLauncher)
+import Fmm.UI.Modpacks (buildModpacks)
 
 import Control.Monad (void)
 import GI.Adw qualified as Adw
@@ -14,6 +15,7 @@ runApp :: IO ()
 runApp = do
   home <- getHomeDirectory
   createDirectoryIfMissing True $ home ++ "/.fmm/versions"
+  createDirectoryIfMissing True $ home ++ "/.fmm/modpacks"
 
   app <- applicationNew (Just "org.ProggerX.fmm") []
 
@@ -31,12 +33,9 @@ buildUI app = do
 
   launcher <- buildLauncher
 
-  mods <- boxNew OrientationVertical 20
+  mods <- labelNew $ Just "WIP"
 
-  modpacks <- boxNew OrientationVertical 20
-
-  lb3 <- labelNew $ Just "idkmp"
-  boxAppend modpacks lb3
+  modpacks <- buildModpacks =<< toWindow window
 
   !_ <- Adw.viewStackAddTitledWithIcon stack launcher Nothing "Launcher" "emblem-system-symbolic"
   !_ <- Adw.viewStackAddTitledWithIcon stack mods Nothing "Mods" "folder-documents-symbolic"
