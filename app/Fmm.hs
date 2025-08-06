@@ -8,9 +8,13 @@ import Control.Monad (void)
 import GI.Adw qualified as Adw
 import GI.Gio (applicationRun, onApplicationActivate)
 import GI.Gtk
+import System.Directory
 
 runApp :: IO ()
 runApp = do
+  home <- getHomeDirectory
+  createDirectoryIfMissing True $ home ++ "/.fmm/versions"
+
   app <- applicationNew (Just "org.ProggerX.fmm") []
 
   !_ <- onApplicationActivate app (buildUI app)
