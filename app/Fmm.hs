@@ -1,72 +1,48 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Fmm where
 
-import Control.Monad (unless, void)
-import Fmm.Types
-import System.Console.CmdArgs
-import System.Directory
-import System.Environment
-import System.IO (hGetContents)
-import System.Process
-import Prelude hiding (mod)
+import Fmm.UI.Launcher (buildLauncher)
 
-newApp :: App
-newApp = app &= program "fmm" &= summary "fmm v0.0.1, (c) ProggerX 2025"
- where
-  app =
-    modes
-      [ usage &= auto
-      , launcher &= name "l" &= name "launch"
-      , modpacks &= name "mp" &= name "modpack"
-      , mods &= name "m" &= name "mod"
-      ]
+import Control.Monad (void)
+import GI.Adw qualified as Adw
+import GI.Gio (applicationRun, onApplicationActivate)
+import GI.Gtk
 
-launcher :: App
-launcher = Launcher{edition = "steam" &= argPos 0 &= typ "VERSION" &= opt "steam"}
+runApp :: IO ()
+runApp = do
+  app <- applicationNew (Just "org.ProggerX.fmm") []
 
-modpacks :: App
-modpacks = ModPacks{}
+  !_ <- onApplicationActivate app (buildUI app)
 
-mods :: App
-mods = Mods{}
+  void $ applicationRun app Nothing
 
-usage :: App
-usage = Usage
+buildUI :: Application -> IO ()
+buildUI app = do
+  window <- applicationWindowNew app
 
-runApp :: App -> IO ()
-runApp = \case
-  Launcher{edition} -> launchGame edition
-  Usage -> printHelp
-  _ -> undefined
+  hbar <- Adw.headerBarNew
 
-isNixos :: IO Bool -- NOTE: Very unstable
-isNixos = (/= "") <$> getEnv "NIX_PROFILES"
+  stack <- Adw.viewStackNew
 
-launchGame :: String -> IO ()
-launchGame ed = do
-  home <- getHomeDirectory
+  launcher <- buildLauncher
 
-  let path =
-        if ed == "steam"
-          then home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
-          else home ++ "/.fmm/versions/" ++ ed ++ "/bin/x64/factorio"
+  mods <- boxNew OrientationVertical 20
 
-  exists <- doesFileExist path
-  unless exists $ do
-    putStrLn $ "Path not found: " ++ path
+  modpacks <- boxNew OrientationVertical 20
 
-  doSteamRun <- isNixos
-  let pr =
-        if doSteamRun
-          then (proc "/usr/bin/env" ["-S", "steam-run", path]){std_out = CreatePipe}
-          else (proc path []){std_out = CreatePipe}
+  lb3 <- labelNew $ Just "idkmp"
+  boxAppend modpacks lb3
 
-  (_, Just hout, _, _) <- createProcess pr
+  !_ <- Adw.viewStackAddTitledWithIcon stack launcher Nothing "Launcher" "emblem-system-symbolic"
+  !_ <- Adw.viewStackAddTitledWithIcon stack mods Nothing "Mods" "folder-documents-symbolic"
+  !_ <- Adw.viewStackAddTitledWithIcon stack modpacks Nothing "Modpacks" "folder-symbolic"
 
-  hGetContents hout >>= putStr
+  selector <- Adw.viewSwitcherNew
+  Adw.viewSwitcherSetStack selector $ Just stack
+  Adw.viewSwitcherSetPolicy selector Adw.ViewSwitcherPolicyWide
+  Adw.headerBarSetTitleWidget hbar $ Just selector
 
-printHelp :: IO ()
-printHelp = do
-  exe <- getExecutablePath
-  void $ createProcess $ proc exe ["--help"]
+  windowSetTitlebar window $ Just hbar
+  windowSetChild window $ Just stack
+  windowPresent window

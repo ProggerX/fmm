@@ -1,7 +1,6 @@
 module Main where
 
-import Fmm (newApp, runApp)
-import System.Console.CmdArgs
+import Fmm (runApp)
 
 main :: IO ()
-main = cmdArgs newApp >>= runApp
+main = runApp
