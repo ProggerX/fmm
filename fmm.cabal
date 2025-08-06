@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               fmm
-version:            0.0.3
+version:            0.0.4
 synopsis:           GTK Factorio Mod Manager and launcher
 homepage:           https://github.com/ProggerX/fmm
 license:            GPL-3.0-only

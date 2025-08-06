@@ -16,6 +16,7 @@ runApp = do
   home <- getHomeDirectory
   createDirectoryIfMissing True $ home ++ "/.fmm/versions"
   createDirectoryIfMissing True $ home ++ "/.fmm/modpacks"
+  createDirectoryIfMissing True $ home ++ "/.factorio/mods"
 
   app <- applicationNew (Just "org.ProggerX.fmm") []
 

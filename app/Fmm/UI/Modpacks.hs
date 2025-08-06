@@ -113,10 +113,13 @@ clearFolder win = do
 
 engageModpack' :: ListBox -> IO ()
 engageModpack' list = do
-  (Just row) <- listBoxGetSelectedRow list
-  modpacks <- getModpacks
-  i <- listBoxRowGetIndex row
-  engageModpack $ modpacks !! fromEnum i
+  mrow <- listBoxGetSelectedRow list
+  case mrow of
+    Just row -> do
+      modpacks <- getModpacks
+      i <- listBoxRowGetIndex row
+      engageModpack $ modpacks !! fromEnum i
+    Nothing -> pure ()
 
 rmModpack :: ListBox -> Window -> IO ()
 rmModpack list win = do
@@ -125,22 +128,25 @@ rmModpack list win = do
   windowSetDefaultSize dg 700 50
   windowSetTransientFor dg $ Just win
 
-  (Just row) <- listBoxGetSelectedRow list
-  modpacks <- getModpacks
-  i <- listBoxRowGetIndex row
+  mrow <- listBoxGetSelectedRow list
+  case mrow of
+    Just row -> do
+      modpacks <- getModpacks
+      i <- listBoxRowGetIndex row
 
-  let name = modpacks !! fromEnum i
+      let name = modpacks !! fromEnum i
 
-  labelNew (Just $ mconcat ["!!! MODPACK \"", name, "\" WILL BE DELETED IF YOU CLICK THIS BUTTON !!!"]) >>= windowSetTitlebar dg . Just
+      labelNew (Just $ mconcat ["!!! MODPACK \"", name, "\" WILL BE DELETED IF YOU CLICK THIS BUTTON !!!"]) >>= windowSetTitlebar dg . Just
 
-  button <- buttonNewWithLabel "OK"
-  !_ <- onButtonClicked button $ do
-    home <- getHomeDirectory
-    let path = home ++ "/.fmm/modpacks/" ++ unpack name
-    removeFile path
-    stringList <- getModpacks >>= stringListNew . Just
-    listBoxBindModel list (Just stringList) (Just f)
-    windowClose dg
+      button <- buttonNewWithLabel "OK"
+      !_ <- onButtonClicked button $ do
+        home <- getHomeDirectory
+        let path = home ++ "/.fmm/modpacks/" ++ unpack name
+        removeFile path
+        stringList <- getModpacks >>= stringListNew . Just
+        listBoxBindModel list (Just stringList) (Just f)
+        windowClose dg
 
-  windowSetChild dg $ Just button
-  windowPresent dg
+      windowSetChild dg $ Just button
+      windowPresent dg
+    Nothing -> pure ()

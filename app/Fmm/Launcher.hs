@@ -20,6 +20,8 @@ launchGame ed = do
           then home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
           else home ++ "/.fmm/versions/" ++ ed ++ "/bin/x64/factorio"
 
+  let modsDir = home ++ "/.factorio/mods"
+
   exists <- doesFileExist path
   unless exists $ do
     putStrLn $ "Path not found: " ++ path
@@ -27,8 +29,8 @@ launchGame ed = do
   doSteamRun <- isNixos
   let pr =
         if doSteamRun
-          then proc "/usr/bin/env" ["-S", "steam-run", path]
-          else proc path []
+          then proc "/usr/bin/env" ["-S", "steam-run", path, "--mod-directory", modsDir]
+          else proc path ["--mod-directory", modsDir]
 
   void $ createProcess pr
 
