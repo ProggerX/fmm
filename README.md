@@ -1,8 +1,6 @@
 # WIP -- Only launcher is implemented now
 
 ## ProggerX/fmm -- Factorio Mod Manager + Launcher
-![screenshot](./screenshot.png)
-
 ### Description
 fmm allows you to launch your Factorio instances (including steam one), manage mods and create modpacks in a simple yet fashionable GUI.
 
@@ -12,3 +10,6 @@ fmm allows you to launch your Factorio instances (including steam one), manage m
 - 🎨 Stylish GTK interface
 - 🗂️ Transparent interaction with filesystem
 - 🧑‍🤝‍🧑 Easy-to-share modpack format
+
+### Screenshots
+![screenshot](./screenshot.png)
