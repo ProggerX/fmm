@@ -1,0 +1,44 @@
+cabal-version:      3.0
+name:               fmm
+version:            0.1.0
+synopsis:           GTK Factorio Mod Manager and launcher
+homepage:           https://github.com/ProggerX/fmm
+license:            GPL-3.0-only
+license-file:       LICENSE
+author:             ProggerX
+maintainer:         x@proggers.ru
+category:           Game
+build-type:         Simple
+
+common warnings
+    ghc-options: -Wall
+
+executable fmm
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:    Fmm,
+                      Fmm.Config,
+                      Fmm.Downloader,
+                      Fmm.Types,
+                      Fmm.Launcher,
+                      Fmm.Instances,
+                      Fmm.Mods
+
+    build-depends:    base >= 4.19,
+                      process,
+                      aeson,
+                      gi-gtk4,
+                      gi-gdk4,
+                      wreq,
+                      lens,
+                      lens-aeson,
+                      directory,
+                      gi-adwaita,
+                      gi-gio,
+                      gi-gobject,
+                      text,
+                      file-embed,
+                      bytestring,
+                      zip-archive,
+    hs-source-dirs:   app
+    default-language: GHC2021
