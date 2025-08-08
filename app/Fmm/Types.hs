@@ -17,9 +17,16 @@ data Instance = Instance
   }
 
 data Mod = Mod
-  { name :: String
-  , title :: String
-  , releases :: [Release]
+  { name :: Text
+  , title :: Text
+  , summary :: Text
+  , latest_release :: Release
+  }
+  deriving (FromJSON, Show, Generic)
+
+data Pagination = Pagination
+  { count :: Int
+  , page_count :: Int
   }
   deriving (FromJSON, Show, Generic)
 
