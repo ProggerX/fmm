@@ -19,7 +19,7 @@ cSave :: String -> Text -> IO ()
 cSave p txt = do
   home <- getHomeDirectory
 
-  let fmmPath = home ++ "/.fmm/"
+  let fmmPath = home ++ "/.fmm/config/"
   createDirectoryIfMissing True fmmPath
 
   TIO.writeFile (fmmPath ++ p) txt
@@ -28,7 +28,7 @@ cGet :: String -> IO (Maybe Text)
 cGet p = do
   home <- getHomeDirectory
 
-  let fmmPath = home ++ "/.fmm/"
+  let fmmPath = home ++ "/.fmm/config/"
   createDirectoryIfMissing True fmmPath
 
   d <- doesFileExist (fmmPath ++ p)
