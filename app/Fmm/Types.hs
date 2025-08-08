@@ -11,7 +11,8 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 
 data Instance = Instance
-  { modsPath :: FilePath
+  { iname :: Text
+  , modsPath :: FilePath
   , binPath :: FilePath
   , fVersion :: Text
   }

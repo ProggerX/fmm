@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Fmm.Instances where
 
 import Fmm.Types
@@ -12,6 +14,9 @@ import Fmm.Downloader
 import Fmm.Mods
 import System.Directory
 
+getVersion :: Instance -> IO [Instance]
+getVersion = undefined
+
 getInstances :: IO [Instance]
 getInstances = do
   home <- getHomeDirectory
@@ -19,15 +24,16 @@ getInstances = do
 
   let instPath = home ++ "/.fmm/instances/"
   createDirectoryIfMissing True instPath
-  files <- map (instPath ++) <$> listDirectory instPath
+  files <- map (\x -> (instPath ++ x, x)) <$> listDirectory instPath
 
   pure $ st ++ map makeInstance files
  where
-  makeInstance :: FilePath -> Instance
-  makeInstance p =
+  makeInstance :: (FilePath, String) -> Instance
+  makeInstance (p, name) =
     Instance
-      { modsPath = p ++ "/mods/"
-      , binPath = p ++ "/bin/x64/factorio/"
+      { iname = T.pack name
+      , modsPath = p ++ "/mods/"
+      , binPath = p ++ "/bin/x64/factorio"
       , fVersion = T.pack "2.0"
       }
 
@@ -39,7 +45,8 @@ getSteamInstance home = do
     then
       pure . Just $
         Instance
-          { modsPath = home ++ "/.factorio/mods/"
+          { iname = "Steam"
+          , modsPath = home ++ "/.factorio/mods/"
           , binPath = bp
           , fVersion = T.pack "2.0"
           }

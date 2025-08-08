@@ -1,4 +1,6 @@
 module Main where
 
+import Fmm
+
 main :: IO ()
-main = undefined
+main = runApp
