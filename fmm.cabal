@@ -41,6 +41,7 @@ executable fmm
                       file-embed,
                       bytestring,
                       zip-archive,
+                      tar,
                       regex-tdfa,
     hs-source-dirs:   app
     default-language: GHC2021

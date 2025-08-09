@@ -4,8 +4,11 @@ module Fmm.Instances where
 
 import Fmm.Types
 
+import Control.Lens hiding (uncons)
 import Control.Monad
-import Data.Function ((&))
+import Data.Aeson
+import Data.Aeson.Lens
+import Data.ByteString.Lazy qualified as BS
 import Data.List
 import Data.Maybe
 import Data.Text (Text)
@@ -13,9 +16,14 @@ import Data.Text qualified as T
 import Fmm.Downloader
 import Fmm.Mods
 import System.Directory
+import System.Process
 
-getVersion :: Instance -> IO [Instance]
-getVersion = undefined
+getVersion :: FilePath -> IO Text
+getVersion path = do
+  vf <- BS.readFile $ path ++ "/data/base/info.json"
+  let v :: Value = fromJust $ decode vf
+
+  pure $ v ^?! key "version" . _String
 
 getInstances :: IO [Instance]
 getInstances = do
@@ -24,31 +32,54 @@ getInstances = do
 
   let instPath = home ++ "/.fmm/instances/"
   createDirectoryIfMissing True instPath
-  files <- map (\x -> (instPath ++ x, x)) <$> listDirectory instPath
+  files <- map (instPath ++) <$> listDirectory instPath
 
-  pure $ st ++ map makeInstance files
+  insts <- mapM makeInstance files
+  pure $ st ++ insts
  where
-  makeInstance :: (FilePath, String) -> Instance
-  makeInstance (p, name) =
-    Instance
-      { iname = T.pack name
-      , modsPath = p ++ "/mods/"
-      , binPath = p ++ "/bin/x64/factorio"
-      , fVersion = T.pack "2.0"
-      }
+  makeInstance :: FilePath -> IO Instance
+  makeInstance p = do
+    v <- getVersion p
+    n <- doesFileExist (p ++ "/.fmm-name")
+    unless n $ writeFile (p ++ "/.fmm-name") (reverse $ takeWhile (/= '/') $ reverse p)
+
+    name <- readFile (p ++ "/.fmm-name")
+
+    pure $
+      Instance
+        { iname = T.pack name
+        , modsPath = p ++ "/mods/"
+        , binPath = p ++ "/bin/x64/factorio"
+        , fVersion = v
+        }
+
+createInstance :: Text -> Text -> Text -> IO ()
+createInstance name version edition = do
+  vs <- getVersions
+
+  when (version `elem` vs) $ do
+    dp <- downloadVersion version edition
+    home <- getHomeDirectory
+    case dp of
+      (Just p) -> do
+        let cp = home ++ "/.fmm/instances/" ++ T.unpack name
+        createDirectory cp
+        void $ createProcess $ proc "/usr/bin/env" ["-S", "tar", "-xf", p, "-C", cp]
+      Nothing -> pure ()
 
 getSteamInstance :: FilePath -> IO (Maybe Instance)
 getSteamInstance home = do
   let bp = home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
   t <- doesFileExist bp
   if t
-    then
+    then do
+      v <- getVersion (home ++ "/.factorio")
       pure . Just $
         Instance
           { iname = "Steam"
           , modsPath = home ++ "/.factorio/mods/"
           , binPath = bp
-          , fVersion = T.pack "2.0"
+          , fVersion = v
           }
     else pure Nothing
 
