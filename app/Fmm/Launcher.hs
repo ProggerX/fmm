@@ -1,42 +1,21 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Fmm.Launcher where
 
-import Control.Monad (unless, void)
-import Data.Text (Text, pack)
-import System.Directory
+import Fmm.Types
+
+import Control.Monad
 import System.Environment
 import System.Process
 
 isNixos :: IO Bool -- NOTE: Very unstable
 isNixos = (/= "") <$> getEnv "NIX_PROFILES"
 
-launchGame :: String -> IO ()
-launchGame ed = do
-  home <- getHomeDirectory
+launchGame :: Instance -> IO ()
+launchGame i = do
+  steamRun <- isNixos
 
-  let path =
-        if ed == "steam"
-          then home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
-          else home ++ "/.fmm/versions/" ++ ed ++ "/bin/x64/factorio"
+  let p =
+        if steamRun
+          then proc "/usr/bin/env" ["-S", "steam-run", binPath i]
+          else proc (binPath i) []
 
-  let modsDir = home ++ "/.factorio/mods"
-
-  exists <- doesFileExist path
-  unless exists $ do
-    putStrLn $ "Path not found: " ++ path
-
-  doSteamRun <- isNixos
-  let pr =
-        if doSteamRun
-          then proc "/usr/bin/env" ["-S", "steam-run", path, "--mod-directory", modsDir]
-          else proc path ["--mod-directory", modsDir]
-
-  void $ createProcess pr
-
-getVersions :: IO [Text]
-getVersions = do
-  home <- getHomeDirectory
-  dir <- listDirectory $ home ++ "/.fmm/versions"
-  steamExists <- doesFileExist $ home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
-  pure $ ["steam" | steamExists] ++ map pack dir
+  void $ createProcess p

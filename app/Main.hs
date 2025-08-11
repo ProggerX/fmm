@@ -1,6 +1,6 @@
 module Main where
 
-import Fmm (runApp)
+import Fmm
 
 main :: IO ()
 main = runApp
