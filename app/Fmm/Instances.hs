@@ -13,45 +13,12 @@ import Data.List
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text.IO qualified as TIO
 import Fmm.Downloader
 import Fmm.Mods
 import System.Directory
+import System.IO (readFile')
 import System.Process
-
-getVersion :: FilePath -> IO Text
-getVersion path = do
-  vf <- BS.readFile $ path ++ "/data/base/info.json"
-  let v :: Value = fromJust $ decode vf
-
-  pure $ v ^?! key "version" . _String
-
-getInstances :: IO [Instance]
-getInstances = do
-  home <- getHomeDirectory
-  st <- maybeToList <$> getSteamInstance home
-
-  let instPath = home ++ "/.fmm/instances/"
-  createDirectoryIfMissing True instPath
-  files <- map (instPath ++) <$> listDirectory instPath
-
-  insts <- mapM makeInstance files
-  pure $ st ++ insts
- where
-  makeInstance :: FilePath -> IO Instance
-  makeInstance p = do
-    v <- getVersion p
-    n <- doesFileExist (p ++ "/.fmm-name")
-    unless n $ writeFile (p ++ "/.fmm-name") (reverse $ takeWhile (/= '/') $ reverse p)
-
-    name <- readFile (p ++ "/.fmm-name")
-
-    pure $
-      Instance
-        { iname = T.pack name
-        , modsPath = p ++ "/mods/"
-        , binPath = p ++ "/bin/x64/factorio"
-        , fVersion = v
-        }
 
 createInstance :: Text -> Text -> Text -> IO ()
 createInstance name version edition = do
@@ -64,24 +31,12 @@ createInstance name version edition = do
       (Just p) -> do
         let cp = home ++ "/.fmm/instances/" ++ T.unpack name
         createDirectory cp
-        void $ createProcess $ proc "/usr/bin/env" ["-S", "tar", "-xf", p, "-C", cp]
+        (_, _, _, ph) <- createProcess $ proc "/usr/bin/env" ["-S", "tar", "-xf", p, "-C", cp]
+        void $ waitForProcess ph
       Nothing -> pure ()
 
-getSteamInstance :: FilePath -> IO (Maybe Instance)
-getSteamInstance home = do
-  let bp = home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
-  t <- doesFileExist bp
-  if t
-    then do
-      v <- getVersion (home ++ "/.factorio")
-      pure . Just $
-        Instance
-          { iname = "Steam"
-          , modsPath = home ++ "/.factorio/mods/"
-          , binPath = bp
-          , fVersion = v
-          }
-    else pure Nothing
+renameInstance :: Instance -> Text -> IO ()
+renameInstance = TIO.writeFile . (++ "/.fmm-name") . ipath
 
 hd :: [a] -> a
 hd = fst . fromJust . uncons
@@ -127,3 +82,61 @@ syncMods inst mods = do
 
     mmods <- mapM (getMod fv) depends
     downloadNeeded fv mp (map fromJust mmods) (T.unpack (name m) : used)
+
+getVersion :: FilePath -> IO Text
+getVersion path = do
+  vf <- BS.readFile $ path ++ "/data/base/info.json"
+  let v :: Value = fromJust $ decode vf
+
+  pure $ v ^?! key "version" . _String
+
+getInstances :: IO [Instance]
+getInstances = do
+  home <- getHomeDirectory
+  st <- maybeToList <$> getSteamInstance home
+
+  let instPath = home ++ "/.fmm/instances/"
+  createDirectoryIfMissing True instPath
+  files <- map (instPath ++) <$> listDirectory instPath
+
+  insts <- mapM makeInstance files
+  pure $ st ++ insts
+ where
+  makeInstance :: FilePath -> IO Instance
+  makeInstance p = do
+    v <- getVersion p
+    n <- doesFileExist (p ++ "/.fmm-name")
+    unless n $ writeFile (p ++ "/.fmm-name") (reverse $ takeWhile (/= '/') $ reverse p)
+
+    name <- takeWhile (/= '\n') <$> readFile' (p ++ "/.fmm-name")
+
+    pure $
+      Instance
+        { iname = T.pack name
+        , ipath = p
+        , modsPath = p ++ "/mods/"
+        , binPath = p ++ "/bin/x64/factorio"
+        , fVersion = v
+        }
+
+getSteamInstance :: FilePath -> IO (Maybe Instance)
+getSteamInstance home = do
+  let p = home ++ "/.factorio"
+  let bp = home ++ "/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"
+  t <- doesFileExist bp
+  if t
+    then do
+      v <- getVersion (home ++ "/.local/share/Steam/steamapps/common/Factorio")
+      n <- doesFileExist (p ++ "/.fmm-name")
+      unless n $ writeFile (p ++ "/.fmm-name") "Steam"
+      name <- takeWhile (/= '\n') <$> readFile' (p ++ "/.fmm-name")
+
+      pure . Just $
+        Instance
+          { iname = T.pack name
+          , ipath = home ++ "/.factorio/"
+          , modsPath = home ++ "/.factorio/mods/"
+          , binPath = bp
+          , fVersion = v
+          }
+    else pure Nothing

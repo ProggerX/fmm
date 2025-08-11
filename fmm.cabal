@@ -23,7 +23,8 @@ executable fmm
                       Fmm.Launcher,
                       Fmm.Instances,
                       Fmm.Mods,
-                      Fmm.UI
+                      Fmm.UI,
+                      Fmm.UI.Edit,
 
     build-depends:    base >= 4.19,
                       process,

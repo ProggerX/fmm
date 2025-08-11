@@ -3,7 +3,9 @@
 module Fmm.UI where
 
 import Fmm.Instances
+import Fmm.Launcher
 import Fmm.Types
+import Fmm.UI.Edit
 
 import Control.Monad
 import Data.Text (Text)
@@ -18,6 +20,7 @@ css =
   " .launch { margin: 20px; border-radius: 20px; background-color: @accent_color; } \n\
   \ .launch * { color: @view_bg_color; } \n\
   \ .launch:active { background-color: lighter(@accent_color); } \n\
+  \ .edit { margin: 20px; border-radius: 5px; margin-right: 0; } \n\
   \ .launcher dropdown, .launcher .download { margin: 5px; } \n\
   \ * { outline: none; }"
 
@@ -27,11 +30,19 @@ addInstRow list inst = do
   Adw.preferencesRowSetTitle row (iname inst)
   Adw.actionRowActivate row
   Adw.actionRowSetSubtitle row (T.pack $ binPath inst)
+  widgetAddCssClass row "row"
 
   lb <- buttonNew
   buttonSetIconName lb "media-playback-start-symbolic"
   widgetAddCssClass lb "launch"
+  !_ <- onButtonClicked lb (launchGame inst)
 
+  st <- buttonNew
+  buttonSetIconName st "emblem-system-symbolic"
+  widgetAddCssClass st "edit"
+  !_ <- onButtonClicked st (spawnEditWindow row inst)
+
+  Adw.actionRowAddSuffix row st
   Adw.actionRowAddSuffix row lb
 
   listBoxAppend list row

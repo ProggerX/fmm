@@ -12,6 +12,7 @@ import GHC.Generics (Generic)
 
 data Instance = Instance
   { iname :: Text
+  , ipath :: FilePath
   , modsPath :: FilePath
   , binPath :: FilePath
   , fVersion :: Text
