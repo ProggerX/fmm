@@ -8,8 +8,8 @@ import Fmm.Types
 import Fmm.UI.Edit
 
 import Control.Monad
+import Data.IORef
 import Data.Text (Text)
-import Data.Text qualified as T
 import GI.Adw qualified as Adw
 import GI.Gdk
 import GI.Gio (applicationRun, onApplicationActivate)
@@ -22,29 +22,32 @@ css =
   \ .launch:active { background-color: lighter(@accent_color); } \n\
   \ .edit { margin: 20px; border-radius: 5px; margin-right: 0; } \n\
   \ .launcher dropdown, .launcher .download { margin: 5px; } \n\
+  \ .row { margin: 10px; margin-bottom: 5px; border-radius: 10px; background-color: lighter(@view_bg_color); } \n\
   \ * { outline: none; }"
 
 addInstRow :: ListBox -> Instance -> IO ()
 addInstRow list inst = do
+  ior <- newIORef inst
   row <- Adw.actionRowNew
-  Adw.preferencesRowSetTitle row (iname inst)
   Adw.actionRowActivate row
-  Adw.actionRowSetSubtitle row (T.pack $ binPath inst)
   widgetAddCssClass row "row"
 
   lb <- buttonNew
   buttonSetIconName lb "media-playback-start-symbolic"
   widgetAddCssClass lb "launch"
-  !_ <- onButtonClicked lb (launchGame inst)
 
   st <- buttonNew
   buttonSetIconName st "emblem-system-symbolic"
   widgetAddCssClass st "edit"
-  !_ <- onButtonClicked st (spawnEditWindow row inst)
 
   Adw.actionRowAddSuffix row st
   Adw.actionRowAddSuffix row lb
 
+  let ir = InstanceRow{row, lb, st}
+  !_ <- onButtonClicked lb (launchGame =<< readIORef ior)
+  !_ <- onButtonClicked st (spawnEditWindow ir ior)
+
+  update ir ior
   listBoxAppend list row
 
 runGUI :: IO ()
