@@ -30,9 +30,10 @@ createInstance name version edition = do
     case dp of
       (Just p) -> do
         let cp = home ++ "/.fmm/instances/" ++ T.unpack name
-        createDirectory cp
-        (_, _, _, ph) <- createProcess $ proc "/usr/bin/env" ["-S", "tar", "-xf", p, "-C", cp]
-        void $ waitForProcess ph
+        createDirectory (cp ++ "tmp")
+        callProcess "/usr/bin/env" ["-S", "tar", "-xf", p, "-C", cp ++ "tmp"]
+        callProcess "/usr/bin/env" ["-S", "mv", cp ++ "tmp/factorio", cp]
+        callProcess "/usr/bin/env" ["-S", "rm", "-r", cp ++ "tmp"]
       Nothing -> pure ()
 
 renameInstance :: Instance -> Text -> IO ()

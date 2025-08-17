@@ -31,6 +31,7 @@ getVersions = do
 downloadVersion :: Text -> Text -> IO (Maybe FilePath)
 downloadVersion v ed = do
   let url = T.unpack $ T.concat ["http://factorio.com/get-download/", v, "/", ed, "/linux64"]
+  putStrLn $ "Downloading from " ++ url
 
   home <- getHomeDirectory
   createDirectoryIfMissing True $ home ++ "/.fmm/versions"
@@ -59,7 +60,9 @@ downloadVersion v ed = do
         else do
           BS.writeFile fp (r ^. responseBody)
           pure $ Just fp
-    (_, True) -> pure $ Just fp
+    (_, True) -> do
+      putStrLn $ "Already exists: " ++ fp
+      pure $ Just fp
     _ -> pure Nothing
 
 downloadRelease :: Release -> IO (Maybe FilePath)
