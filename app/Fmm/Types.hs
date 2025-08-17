@@ -7,11 +7,8 @@ module Fmm.Types where
 import Control.Lens
 import Data.Aeson
 import Data.Aeson.Lens
-import Data.IORef
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import GI.Adw qualified as Adw
-import GI.Gtk hiding (Text)
 
 data Instance = Instance
   { iname :: Text
@@ -53,12 +50,3 @@ fromSuccess (Error s) = error s
 
 dependencies :: Release -> [Text]
 dependencies = fromSuccess . fromJSON . (^?! key "dependencies") . Object . info_json
-
-class Updatable a b where
-  update :: a -> IORef b -> IO ()
-
-data InstanceRow = InstanceRow
-  { row :: Adw.ActionRow
-  , lb :: Button
-  , st :: Button
-  }

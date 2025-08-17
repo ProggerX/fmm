@@ -11,7 +11,6 @@ import Fmm.UI.Edit
 import Control.Concurrent
 import Control.Monad
 import Data.Char (digitToInt, isAscii)
-import Data.IORef
 import Data.Text (Text)
 import Data.Text qualified as T
 import GI.Adw qualified as Adw
@@ -20,7 +19,6 @@ import GI.GObject
 import GI.Gdk
 import GI.Gio (applicationRun, onApplicationActivate)
 import GI.Gtk hiding (Text)
-import System.IO
 
 css :: Text
 css =
@@ -33,11 +31,12 @@ css =
   \ .moreMargin { margin-top: 12px; margin-bottom: 12px; } \n\
   \ * { outline: none; }"
 
-addInstRow :: ListBox -> Instance -> IO ()
-addInstRow list inst = do
-  ior <- newIORef inst
+addInstRow :: ListBox -> ApplicationWindow -> Instance -> IO ()
+addInstRow list parent inst = do
   row <- Adw.actionRowNew
   Adw.actionRowActivate row
+  Adw.preferencesRowSetTitle row (iname inst)
+  Adw.actionRowSetSubtitle row (fVersion inst)
   widgetAddCssClass row "row"
 
   lb <- buttonNew
@@ -51,11 +50,9 @@ addInstRow list inst = do
   Adw.actionRowAddSuffix row st
   Adw.actionRowAddSuffix row lb
 
-  let ir = InstanceRow{row, lb, st}
-  !_ <- onButtonClicked lb (launchGame =<< readIORef ior)
-  !_ <- onButtonClicked st (spawnEditWindow ir ior)
+  !_ <- onButtonClicked lb (launchGame inst)
+  !_ <- onButtonClicked st (spawnEditWindow inst list updateList parent)
 
-  update ir ior
   listBoxAppend list row
 
 runGUI :: IO ()
@@ -85,25 +82,34 @@ buildUI app = do
 
   instances <- getInstances
 
-  mapM_ (addInstRow list) instances
+  mapM_ (addInstRow list window) instances
 
-  listBoxAppend list =<< createNewRow list
+  listBoxAppend list =<< createNewRow list window
 
   windowSetChild window $ Just list
   windowPresent window
 
-createNewRow :: ListBox -> IO Adw.ButtonRow
-createNewRow list = do
+updateList :: ListBox -> ApplicationWindow -> IO ()
+updateList list window = do
+  listBoxRemoveAll list
+
+  instances <- getInstances
+  mapM_ (addInstRow list window) instances
+  listBoxAppend list =<< createNewRow list window
+
+createNewRow :: ListBox -> ApplicationWindow -> IO Adw.ButtonRow
+createNewRow list parent = do
   r <- Adw.buttonRowNew
 
   Adw.preferencesRowSetTitle r "Add"
   Adw.buttonRowSetStartIconName r $ Just "list-add-symbolic"
   !_ <- Adw.onButtonRowActivated r $ do
-    !_ <- Adw.onButtonRowActivated r (pure ())
+    Adw.preferencesRowSetTitle r "Wait..."
+    widgetSetSensitive r False
     void $ forkIO $ do
       vs <- concatMap createEditions <$> getVersions
       void $ GLib.idleAdd GLib.PRIORITY_DEFAULT_IDLE $ do
-        makeNewInstance list r vs
+        makeNewInstance list r vs parent
         pure False
 
   pure r
@@ -114,8 +120,8 @@ createEditions t =
  where
   v = T.unpack t
 
-makeNewInstance :: ListBox -> Adw.ButtonRow -> [String] -> IO ()
-makeNewInstance list r vs = do
+makeNewInstance :: ListBox -> Adw.ButtonRow -> [String] -> ApplicationWindow -> IO ()
+makeNewInstance list r vs parent = do
   listBoxRemove list r
 
   cr <- Adw.comboRowNew
@@ -155,12 +161,16 @@ makeNewInstance list r vs = do
 
         createInstance txt v e
         void $ GLib.idleAdd GLib.PRIORITY_DEFAULT_IDLE $ do
-          listBoxRemoveAll list
-
-          instances <- getInstances
-          mapM_ (addInstRow list) instances
-          listBoxAppend list =<< createNewRow list
+          updateList list parent
           pure False
+
+  -- NOTE: Maybe some day
+  --
+  -- cancel <- buttonNewWithLabel "Cancel"
+  -- widgetAddCssClass cancel "edit"
+  -- !_ <-
+  --   onButtonClicked cancel $
+  --     updateList list parent
 
   Adw.actionRowAddPrefix cr entry
   Adw.actionRowAddSuffix cr button
