@@ -18,7 +18,9 @@ import GI.GLib qualified as GLib
 import GI.GObject
 import GI.Gdk
 import GI.Gio (applicationRun, onApplicationActivate)
+import GI.Gio qualified as Gio
 import GI.Gtk hiding (Text)
+import System.Directory
 
 css :: Text
 css =
@@ -164,15 +166,34 @@ makeNewInstance list r vs parent = do
           updateList list parent
           pure False
 
-  -- NOTE: Maybe some day
-  --
-  -- cancel <- buttonNewWithLabel "Cancel"
-  -- widgetAddCssClass cancel "edit"
-  -- !_ <-
-  --   onButtonClicked cancel $
-  --     updateList list parent
+  local <- buttonNewWithLabel "Local..."
+  widgetAddCssClass local "edit"
+  !_ <-
+    onButtonClicked local $ do
+      fd <- fileDialogNew
+      home <- getHomeDirectory
+      f <- Gio.fileNewForPath $ home ++ "/.fmm/instances"
+
+      fileDialogSetInitialFolder fd (Just f)
+
+      fileDialogSelectFolder fd (Just parent) (Nothing @Gio.Cancellable) (Just $ localRespond fd)
+
+      updateList list parent
 
   Adw.actionRowAddPrefix cr entry
+  Adw.actionRowAddSuffix cr local
   Adw.actionRowAddSuffix cr button
 
   listBoxAppend list cr
+ where
+  localRespond :: FileDialog -> Maybe Object -> Gio.AsyncResult -> IO ()
+  localRespond fd _ ar = do
+    mf <- fileDialogSelectFolderFinish fd ar
+    case mf of
+      Just f -> do
+        mp <- Gio.fileGetPath f
+        case mp of
+          Just p -> do
+            putStrLn $ "User chose " ++ p
+          Nothing -> pure ()
+      Nothing -> pure ()

@@ -16,10 +16,14 @@
           returnShellEnv = isShell;
           modifier =
             drv:
-            pkgs.haskell.lib.addBuildTools drv (with pkgs; [
-              cabal-install
-              haskell-language-server
-            ]);
+            pkgs.haskell.lib.addBuildTools drv (
+              with pkgs;
+              [
+                cabal-install
+                haskell-language-server
+                wrapGAppsHook4
+              ]
+            );
         };
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -28,10 +32,18 @@
         { pkgs, ... }:
         {
           packages.default = hs-project { inherit pkgs; };
-          devShells.default = hs-project {
-            inherit pkgs;
-            isShell = true;
-          };
+          devShells.default =
+            let
+              p = hs-project {
+                inherit pkgs;
+                isShell = true;
+              };
+            in
+            p.overrideAttrs {
+              shellHook = with pkgs; ''
+                XDG_DATA_DIRS=$XDG_DATA_DIRS:${gtk4}/share/gsettings-schemas/${gtk4.name}
+              '';
+            };
         };
     };
 }
