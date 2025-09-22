@@ -168,23 +168,33 @@ makeNewInstance list r vs parent = do
 
   local <- buttonNewWithLabel "Local..."
   widgetAddCssClass local "edit"
-  !_ <-
-    onButtonClicked local $ do
-      fd <- fileDialogNew
-      home <- getHomeDirectory
-      f <- Gio.fileNewForPath $ home ++ "/.fmm/instances"
-
-      fileDialogSetInitialFolder fd (Just f)
-
-      fileDialogSelectFolder fd (Just parent) (Nothing @Gio.Cancellable) (Just $ localRespond fd)
-
-      updateList list parent
-
+  !_ <- onButtonClicked local $ createLocalInstance list parent
   Adw.actionRowAddPrefix cr entry
   Adw.actionRowAddSuffix cr local
   Adw.actionRowAddSuffix cr button
 
   listBoxAppend list cr
+ where
+  checkInstanceName :: String -> IO Bool
+  checkInstanceName _ = do
+    pure True
+
+createLocalInstance :: ListBox -> ApplicationWindow -> IO ()
+createLocalInstance list parent = do
+  fd <- fileDialogNew
+  home <- getHomeDirectory
+  f <- Gio.fileNewForPath $ home ++ "/.fmm/instances"
+
+  fileDialogSetInitialFolder fd (Just f)
+
+  c <- Gio.cancellableNew
+  !_ <- Gio.onCancellableCancelled c (putStrLn "User cancelled")
+  !_ <- Gio.cancellableConnect (Just c) (putStrLn "Cancelled")
+  Gio.cancellablePushCurrent (Just c)
+
+  fileDialogSelectFolder fd (Just parent) (Just c) (Just $ localRespond fd)
+
+  updateList list parent
  where
   localRespond :: FileDialog -> Maybe Object -> Gio.AsyncResult -> IO ()
   localRespond fd _ ar = do
