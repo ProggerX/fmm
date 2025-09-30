@@ -9,6 +9,7 @@ import Fmm.Types
 import Fmm.UI.Edit
 
 import Control.Concurrent
+import Control.Exception
 import Control.Monad
 import Data.Char (digitToInt, isAscii)
 import Data.Text (Text)
@@ -198,12 +199,15 @@ createLocalInstance list parent = do
  where
   localRespond :: FileDialog -> Maybe Object -> Gio.AsyncResult -> IO ()
   localRespond fd _ ar = do
-    mf <- fileDialogSelectFolderFinish fd ar
-    case mf of
-      Just f -> do
-        mp <- Gio.fileGetPath f
-        case mp of
-          Just p -> do
-            putStrLn $ "User chose " ++ p
+    ef <- try @SomeException $ fileDialogSelectFolderFinish fd ar
+    case ef of
+      Left _ -> pure ()
+      Right mf ->
+        case mf of
+          Just f -> do
+            mp <- Gio.fileGetPath f
+            case mp of
+              Just p -> do
+                putStrLn $ "User chose " ++ p
+              Nothing -> pure ()
           Nothing -> pure ()
-      Nothing -> pure ()

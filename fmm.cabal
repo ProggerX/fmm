@@ -29,6 +29,7 @@ executable fmm
     build-depends:    base >= 4.19,
                       process,
                       aeson,
+                      mtl,
                       gi-gtk4,
                       gi-gdk4,
                       wreq,
