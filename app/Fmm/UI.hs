@@ -2,6 +2,7 @@
 
 module Fmm.UI where
 
+import Fmm.Config
 import Fmm.Downloader
 import Fmm.Instances
 import Fmm.Launcher
@@ -12,6 +13,7 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Data.Char (digitToInt, isAscii)
+import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
 import GI.Adw qualified as Adw
@@ -74,6 +76,15 @@ buildUI app = do
   hb <- Adw.headerBarNew
 
   windowSetTitlebar window $ Just hb
+
+  offlineLb <- labelNew $ Just "Offline"
+  offlineSw <- switchNew
+  st <- read @Bool . T.unpack . fromJust <$> cGet "offline"
+  switchSetActive offlineSw st
+  !_ <- onSwitchStateSet offlineSw (switchResponse offlineSw)
+
+  Adw.headerBarPackStart hb offlineLb
+  Adw.headerBarPackStart hb offlineSw
 
   (Just display) <- displayGetDefault
   cssProvider <- cssProviderNew
@@ -211,3 +222,9 @@ createLocalInstance list parent = do
                 putStrLn $ "User chose " ++ p
               Nothing -> pure ()
           Nothing -> pure ()
+
+switchResponse :: Switch -> SwitchStateSetCallback
+switchResponse sw b = do
+  cSave "offline" $ T.pack $ show b
+  switchSetActive sw b
+  pure True
